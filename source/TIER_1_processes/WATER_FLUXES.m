@@ -495,49 +495,21 @@ classdef WATER_FLUXES < BASE
                 (ground.STATVAR.hydraulicConductivity(1:end-1,1).*ground.STATVAR.layerThick(2:end,1)./2 + ground.STATVAR.hydraulicConductivity(2:end,1).*ground.STATVAR.layerThick(1:end-1,1)./2);
 
             ground.TEMP.d_head_waterPotential = ground.STATVAR.waterPotential(1:end-1,1) - ground.STATVAR.waterPotential(2:end,1);
-            ground.TEMP.d_head_gravitationalPotential = ground.STATVAR.gravitationalPotential(1:end-1,1) - ground.STATVAR.gravitationalPotential(2:end,1);
-            %ground.TEMP.d_head_gravity = (double(ground.STATVAR.saturation(1:end-1,1) <= 1-1e-6) .* ground.STATVAR.layerThick(1:end-1,1) + double(ground.STATVAR.saturation(2:end,1) <= 1-1e-6) .* ground.STATVAR.layerThick(2:end,1))./2;
-            %ground.TEMP.d_head_hydrostatic_pressure = double(ground.STATVAR.saturation(1:end-1,1) >= 1-1e-6 & ground.STATVAR.saturation(2:end,1) >= 1-1e-6) .* ((ground.STATVAR.hydrostatic_pressure(1:end-1,1) - ground.STATVAR.hydrostatic_pressure(2:end,1))./ground.CONST.density_water./ground.CONST.g);
-            %ground.TEMP.d_head_soilMechanics = (double(ground.STATVAR.saturation(1:end-1,1) > 1-1e-6) .* double(ground.STATVAR.saturation(2:end,1) > 1-1e-6) .* ((ground.STATVAR.overburden_pressure(1:end-1,1) - ground.STATVAR.bearing_capacity(1:end-1,1)) ...
-            %    - ( ground.STATVAR.overburden_pressure(2:end,1) - ground.STATVAR.bearing_capacity(2:end,1)))) ./ ground.CONST.density_water./ground.CONST.g;           
-            %ground.TEMP.d_head_soilMechanics = (double(ground.STATVAR.saturation(2:end,1) > 1-1e-6) .* ((ground.STATVAR.overburden_pressure(1:end-1,1) - ground.STATVAR.bearing_capacity(1:end-1,1)) ...
-            %    - ( ground.STATVAR.overburden_pressure(2:end,1) - ground.STATVAR.bearing_capacity(2:end,1)))) ./ ground.CONST.density_water./ground.CONST.g;           
-            %%%ground.TEMP.d_head_soilMechanics = ((double(ground.STATVAR.saturation(1:end-1,1) > 1-1e-6) .* (ground.STATVAR.overburden_pressure(1:end-1,1) - ground.STATVAR.bearing_capacity(1:end-1,1))) ...
-            %%%    - (double(ground.STATVAR.saturation(2:end,1) > 1-1e-6) .* (ground.STATVAR.overburden_pressure(2:end,1) - ground.STATVAR.bearing_capacity(2:end,1)))) ./ ground.CONST.density_water./ground.CONST.g;
-            
+            ground.TEMP.d_head_gravitationalPotential = ground.STATVAR.gravitationalPotential(1:end-1,1) - ground.STATVAR.gravitationalPotential(2:end,1);           
             ground.TEMP.d_head_soilMechanics = ((double(ground.STATVAR.saturation(1:end-1,1) > 1-1e-6) .* (ground.STATVAR.overburden_pressure(1:end-1,1) - ground.STATVAR.bearing_capacity(1:end-1,1))) ...
-                - (double(ground.STATVAR.saturation(2:end,1) > 1-1e-6) .*(ground.STATVAR.overburden_pressure(2:end,1) - ground.STATVAR.bearing_capacity(2:end,1)))) ./ ground.CONST.density_water./ground.CONST.g;
+                - (double(ground.STATVAR.saturation(2:end,1) > 1-1e-6) .* (ground.STATVAR.overburden_pressure(2:end,1) - ground.STATVAR.bearing_capacity(2:end,1)))) ./ ground.CONST.rho_w ./ ground.CONST.g;
             
             ground.TEMP.d_head = ground.TEMP.d_head_waterPotential + ground.TEMP.d_head_gravitationalPotential + ground.TEMP.d_head_soilMechanics;
             
-            if ground.TEMP.d_head(5,1) < 0.01
-                xxx = 0;
-            end
-            
             %fluxes from one cell into another
-            fluxes = -k_eff.* ground.TEMP.d_head .* 0.5.* (ground.STATVAR.area(1:end-1,1) + ground.STATVAR.area(2:end,1));
-            %fluxes to the surface --> has to be positive as water can be pressed out of soil but no water available to be drawn into the soil
-            %flux_out_surface_soilMechanics = max(0,double(ground.STATVAR.saturation(1,1) >= 1-1e-6) .* ((ground.STATVAR.hydraulicConductivity(1,1) ./ (ground.STATVAR.layerThick(1,1)./2)) .* (ground.STATVAR.overburden_pressure(1,1) - ground.STATVAR.bearing_capacity(1,1) - 0) .* ground.STATVAR.area(1,1)));
-           
+            fluxes = -k_eff.* ground.TEMP.d_head .* 0.5.* (ground.STATVAR.area(1:end-1,1) + ground.STATVAR.area(2:end,1));           
             ground.TEMP.fluxes = fluxes;
-         
-            for i = 2 : size(ground.STATVAR.porosity,1)
-                if ground.STATVAR.porosity(i,1) > 0.49
-                    xxxx = 0;
-                end
-            end
-            for i = 7
-                if ground.STATVAR.porosity(i,1) < 0.4
-                    xxxx = 0;
-                end
-            end
             
             %same as for bucketW
             d_water_out = ground.STATVAR.hydraulicConductivity .* 0;
             d_water_out(1:end-1,1) = -fluxes .* double(fluxes <0);
             d_water_out(2:end,1) = d_water_out(2:end,1)  + fluxes .* double(fluxes >0);
             
-            %d_water_out(1,1) = d_water_out(1,1) + flux_out_surface_soilMechanics;
             Xwater_out = 0;
             if ground.STATVAR.Xwater(1,1) / ground.STATVAR.waterIce(1,1) > 0.05
                 Xwater_out = ground.STATVAR.Xwater(1,1) - 0.05 * ground.STATVAR.waterIce(1,1);
@@ -573,11 +545,11 @@ classdef WATER_FLUXES < BASE
             air_available_below = [air_available_below; 0]; % no air reservoir below last cell
             ground.TEMP.no_air = ground.TEMP.d_water <0 & ~air_available_above & ~air_available_below;
 
-            dBearingCapacity_dPorosity = ground.STATVAR.reference_pressure .* log(10) .* 10.^((ground.STATVAR.initial_voidRatio - ground.STATVAR.porosity - ground.STATVAR.initial_voidRatio .* ground.STATVAR.porosity) ./ ...
-                (ground.STATVAR.compression_index - ground.STATVAR.porosity .* ground.STATVAR.compression_index)) .* ...
-                ((-1-ground.STATVAR.initial_voidRatio).*(ground.STATVAR.compression_index - ground.STATVAR.porosity.*ground.STATVAR.compression_index) + ...
-                ground.STATVAR.compression_index.*(ground.STATVAR.initial_voidRatio - ground.STATVAR.porosity - ground.STATVAR.initial_voidRatio .* ground.STATVAR.porosity)) ./ ...
-                ((ground.STATVAR.compression_index - ground.STATVAR.porosity .* ground.STATVAR.compression_index).^2);
+            dBearingCapacity_dPorosity = ground.STATVAR.reference_pressure .* log(10) .* 10.^((ground.STATVAR.initial_voidRatio - ground.STATVAR.Xporosity - ground.STATVAR.initial_voidRatio .* ground.STATVAR.Xporosity) ./ ...
+                (ground.STATVAR.compression_index - ground.STATVAR.Xporosity .* ground.STATVAR.compression_index)) .* ...
+                ((-1-ground.STATVAR.initial_voidRatio).*(ground.STATVAR.compression_index - ground.STATVAR.Xporosity.*ground.STATVAR.compression_index) + ...
+                ground.STATVAR.compression_index.*(ground.STATVAR.initial_voidRatio - ground.STATVAR.Xporosity - ground.STATVAR.initial_voidRatio .* ground.STATVAR.Xporosity)) ./ ...
+                ((ground.STATVAR.compression_index - ground.STATVAR.Xporosity .* ground.STATVAR.compression_index).^2);
             dPorosity_dWater = (ground.STATVAR.mineral + ground.STATVAR.organic) ./ ((ground.STATVAR.waterIce + ground.STATVAR.mineral + ground.STATVAR.organic)).^2;
             
             ground.TEMP.dBearingCapacity_dWater = dBearingCapacity_dPorosity .* dPorosity_dWater;
