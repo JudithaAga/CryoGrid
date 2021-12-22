@@ -4,7 +4,7 @@ classdef PROVIDER_YAML < BASE_PROVIDER
         
         function provider = assign_paths_yaml(provider, run_name, result_path, constant_file)
             
-			warning('WARNING: YAML provider not fully implemented and tested!')
+			%warning('WARNING: YAML provider not fully implemented and tested!')
 			
             constant_file = [result_path run_name '/' constant_file '.yml'];
             parameter_file = [result_path run_name '/' run_name '.yml'];
@@ -159,6 +159,8 @@ classdef PROVIDER_YAML < BASE_PROVIDER
                                 else
                                     warning(['Unrecognized compound parameter format. Parameter "' fieldname '" in class "' class(new_class) '" not populated.'])
                                 end
+                            elseif ismatrix(contents) && isempty(contents)
+                                new_class.PARA.(fieldname) = [];
                             elseif isempty(contents)
                                 new_class.PARA.(fieldname) = NaN;
                             else
